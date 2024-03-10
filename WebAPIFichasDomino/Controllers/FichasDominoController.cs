@@ -1,8 +1,14 @@
 ﻿using Application.FichaDomino;
 using Domain;
 using Domain.FichaDomino;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 using NewRelic.Api.Agent;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using WebAPIFichasDomino.APM.NewRelicAgent;
 
 namespace WebAPIFichasDomino.Controllers
@@ -11,7 +17,15 @@ namespace WebAPIFichasDomino.Controllers
     [Route("api/fichasDomino")]
     public class FichasDominoController : ControllerBase
     {
+        public IConfiguration Configuration { get; }
+
+        public FichasDominoController(IConfiguration configuration)
+        {
+            Configuration = configuration;
+        }
+
         [HttpPost("ordenarFichas")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public ActionResult<List<FichaDominoEntity>> PostOrdenarFichas([FromBody] RequestData requestData)
         {
             var fichaDominoApplication = new FichaDominoApplication();
@@ -82,6 +96,26 @@ namespace WebAPIFichasDomino.Controllers
                     validacion = mensajeValidacion
                 });
             }
+        }
+
+        [HttpGet("solicitarToken")]
+        public ActionResult<ResponseAuthentication> GetTokenJwt()
+        {
+            var claimsProject = new List<Claim>()
+            {
+                new Claim("client", "Inalambria"),
+                new Claim("developer", "Juan Polania")
+            };
+
+            var llave = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["LlaveJWT"]));
+            var creds = new SigningCredentials(llave, SecurityAlgorithms.HmacSha256);
+            var expirationJtw = DateTime.UtcNow.AddMinutes(10);
+
+            var securityToken = new JwtSecurityToken(issuer: "inalamabria", audience: null, claims: claimsProject, 
+                expires: expirationJtw, signingCredentials: creds);
+
+            return new ResponseAuthentication()
+            { Expiration = expirationJtw, Token = new JwtSecurityTokenHandler().WriteToken(securityToken) };
         }
 
         [Transaction]
