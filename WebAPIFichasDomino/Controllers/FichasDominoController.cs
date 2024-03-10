@@ -109,7 +109,7 @@ namespace WebAPIFichasDomino.Controllers
 
             var llave = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["LlaveJWT"]));
             var creds = new SigningCredentials(llave, SecurityAlgorithms.HmacSha256);
-            var expirationJtw = DateTime.UtcNow.AddMinutes(10);
+            var expirationJtw = DateTime.UtcNow.AddMinutes(30);
 
             var securityToken = new JwtSecurityToken(issuer: "inalamabria", audience: null, claims: claimsProject, 
                 expires: expirationJtw, signingCredentials: creds);
